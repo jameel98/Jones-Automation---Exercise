@@ -1,0 +1,15 @@
+{
+    "validContact": {
+        "name": "Alice Johnson",
+        "email": "alice.johnson@example.com",
+        "phone": "+1234567890",
+        "company": "Example Inc.",
+        "website": "https://www.example.com",
+        "employees": "51-500"
+    },
+    "employeeOptions": ["1-10", "11-50", "51-500", "500+"],
+    "invalidData": {
+        "email": "not-an-email",
+        "website": "not a valid url"
+    }
+}
