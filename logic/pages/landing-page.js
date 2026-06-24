@@ -3,6 +3,7 @@
 // Holds every locator and action for this page in one place.
 // Tests interact with the page through these methods, never via raw selectors.
 
+const fs = require('fs');
 const path = require('path');
 const { BasePage } = require('./base-page');
 const { logger } = require('../../infra/logger');
@@ -18,17 +19,22 @@ class LandingPage extends BasePage {
     super(page);
 
     // --- Locators -----------------------------------------------------
-    this.nameInput = page.locator('#name');
-    this.emailInput = page.locator('#email');
-    this.phoneInput = page.locator('#phone');
-    this.companyInput = page.locator('#company');
-    this.websiteInput = page.locator('#website');
-    this.employeesSelect = page.locator('#employees');
+    // Prefer label-based locators over IDs: they track the form the way a
+    // user sees it and survive markup/id refactors. (Labels carry a trailing
+    // " *" on required fields; getByLabel matches by substring so "Name"
+    // still resolves "Name *".)
+    this.nameInput = page.getByLabel('Name');
+    this.emailInput = page.getByLabel('Email');
+    this.phoneInput = page.getByLabel('Phone');
+    this.companyInput = page.getByLabel('Company');
+    this.websiteInput = page.getByLabel('Website');
+    this.employeesSelect = page.getByLabel('Number of Employees');
     this.submitButton = page.getByRole('button', {
       name: /request a call back/i,
     });
-    // Success state after submit.
-    this.thankYouMessage = page.getByText(/thank you/i);
+    // Success state after submit: the thank-you page's <h1>. Scoping to the
+    // heading avoids matching stray "thank you" text elsewhere on the page.
+    this.thankYouMessage = page.getByRole('heading', { name: /thank you/i });
 
     // Map of field name -> locator, so data-driven tests can address a
     // single field by its string key (used by validation checks).
@@ -66,7 +72,9 @@ class LandingPage extends BasePage {
     if (data.company !== undefined) await this.companyInput.fill(data.company);
     if (data.website !== undefined) await this.websiteInput.fill(data.website);
 
-    if (data.employees) {
+    // Use the same `!== undefined` guard as the fields above so a caller can
+    // pass employees: '' to exercise the default without it being skipped.
+    if (data.employees !== undefined && data.employees !== '') {
       await this.employeesSelect.selectOption(data.employees);
     }
   }
@@ -93,6 +101,9 @@ class LandingPage extends BasePage {
 
   async takeScreenshot(fileName) {
     logger.info(`Saving screenshot: ${fileName}`);
+    // Create the folder if it doesn't exist yet, otherwise screenshot()
+    // throws ENOENT and fails the test.
+    fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
     await this.page.screenshot({
       path: path.join(SCREENSHOTS_DIR, fileName),
       fullPage: true,

@@ -14,8 +14,15 @@ const test = base.test.extend({
   wrapper: async ({ page }, use) => {
     const wrapper = new BrowserWrapper();
     wrapper.adoptPage(page);
+    // Remember the browser the runner owns, so we never close it below.
+    const runnerBrowser = wrapper.browser;
     await use(wrapper);
-    // No close() here — the runner owns the page lifecycle.
+    // The runner owns the adopted page/browser, so normally we close nothing.
+    // But if something caused the wrapper to launch its own browser, close
+    // that one to avoid leaking a process.
+    if (wrapper.browser && wrapper.browser !== runnerBrowser) {
+      await wrapper.close();
+    }
   },
 
   // A LandingPage already navigated, built via the wrapper.

@@ -4,6 +4,12 @@ const { urls } = require('./config/pages-urls.json');
 module.exports = defineConfig({
   testDir: './test',
   reporter: 'html',
+  // Per-test ceiling so a hung request against the live site can't stall the run.
+  timeout: 30_000,
+  // The suite hits a live server, so retry transient failures on CI and run
+  // serially there to avoid hammering it; keep local runs fast and parallel.
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
   use: {
     // Default browser is Chromium.
     browserName: 'chromium',
